@@ -67,3 +67,28 @@ function openSettings(){
 document.getElementById('cookie-customise')?.addEventListener('click',openSettings);
 document.getElementById('cookie-settings-open')?.addEventListener('click',openSettings);
 document.getElementById('cookie-save')?.addEventListener('click',()=>saveConsent(analyticsChoice.checked,marketingChoice.checked));
+
+
+// Connected package builder
+const packageBoxes=[...document.querySelectorAll('.package-option input[data-package]')];
+const packageSelected=document.getElementById('package-selected');
+const packageDescription=document.getElementById('package-description');
+const packageEnquiry=document.getElementById('package-enquiry');
+function updatePackage(){
+  if(!packageSelected)return;
+  const selected=['Website',...packageBoxes.filter(x=>x.checked).map(x=>x.dataset.package)];
+  packageSelected.innerHTML=selected.map(x=>'<span>'+x+'</span>').join('');
+  const extras=selected.slice(1);
+  packageDescription.textContent=extras.length
+    ? 'A website with '+extras.join(', ')+' added around it. Final scope depends on your systems, integrations and managed-service needs.'
+    : 'A professionally built website, ready to add more when the business needs it.';
+  if(packageEnquiry) packageEnquiry.href='#contact';
+  const interest=document.querySelector('#enquiry-form select[name="interest"]');
+  const msg=document.querySelector('#enquiry-form textarea[name="message"]');
+  packageEnquiry?.addEventListener('click',()=>{
+    if(interest) interest.value='Not Sure Yet';
+    if(msg) msg.value='I am interested in this ORVIA package: '+selected.join(' + ')+'.';
+  },{once:true});
+}
+packageBoxes.forEach(x=>x.addEventListener('change',updatePackage));
+updatePackage();
