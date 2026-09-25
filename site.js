@@ -1,12 +1,43 @@
 const enquiryForm=document.getElementById('enquiry-form');
-enquiryForm?.addEventListener('submit',event=>{
+const enquiryStatus=document.getElementById('enquiry-status');
+const formStartedAt=Date.now();
+enquiryForm?.addEventListener('submit',async event=>{
   event.preventDefault();
   if(!enquiryForm.reportValidity())return;
+  const button=enquiryForm.querySelector('button[type="submit"]');
   const data=new FormData(enquiryForm);
-  const fields=[['Name','name'],['Business','business'],['Email','email'],['Telephone','phone'],['Interested in','interest'],['Message','message']];
-  const body=fields.map(([label,key])=>`${label}: ${String(data.get(key)||'').trim()}`).join('\n');
-  const subject=`ORVIA Web enquiry: ${String(data.get('interest')||'Website')}`;
-  window.location.href=`mailto:web@orvia.org.uk?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const params=new URLSearchParams(location.search);
+  let attribution={};
+  try{attribution=JSON.parse(sessionStorage.getItem('orvia-web-attribution')||'{}')}catch{}
+  const payload={
+    name:String(data.get('name')||'').trim(),
+    business:String(data.get('business')||'').trim(),
+    email:String(data.get('email')||'').trim(),
+    phone:String(data.get('phone')||'').trim(),
+    interest:String(data.get('interest')||'').trim(),
+    message:String(data.get('message')||'').trim(),
+    website:'',
+    started_at:formStartedAt,
+    landing_path:location.pathname,
+    utm_source:params.get('utm_source')||attribution.utm_source||'',
+    utm_medium:params.get('utm_medium')||attribution.utm_medium||'',
+    utm_campaign:params.get('utm_campaign')||attribution.utm_campaign||'',
+    utm_content:params.get('utm_content')||attribution.utm_content||'',
+    utm_term:params.get('utm_term')||attribution.utm_term||''
+  };
+  button.disabled=true;
+  enquiryStatus.textContent='Sending…';
+  try{
+    const response=await fetch('https://qokkyynptzeuuebykmbo.supabase.co/functions/v1/web-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(result.error||'Unable to send');
+    enquiryForm.reset();
+    enquiryStatus.textContent='Thank you — your enquiry has been sent to ORVIA Web.';
+    enquiryStatus.className='form-status success';
+  }catch(error){
+    enquiryStatus.textContent='We could not send that just now. Please call 0330 043 3703 or email web@orvia.org.uk.';
+    enquiryStatus.className='form-status error';
+  }finally{button.disabled=false}
 });
 
 const consentKey='orvia-web-consent-v1';
